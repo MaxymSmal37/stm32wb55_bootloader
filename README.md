@@ -99,3 +99,4 @@ they are dependencies and scaffolding for the eventual bootloader:
 (active high). Change `LED_PORT` / `LED_PIN` at the top of `main.c` for
 different hardware.
 # stm32wb55_bootloader
+# stm32wb55_bootloader
