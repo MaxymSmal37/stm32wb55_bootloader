@@ -22,3 +22,4 @@ void bootloader_app(void);
 uint8_t bootloader_start_update(void);
 uint8_t bootloader_update_batch(uint8_t *data, uint8_t size);
 uint8_t bootloader_stop_update(void);
+void bootloader_jump_to_application(void);

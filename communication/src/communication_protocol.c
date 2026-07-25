@@ -1,6 +1,5 @@
 #include "stm32wbxx.h"
 #include <string.h>
-#include "bootloader.h"
 
 #include "communication_protocol.h"
 
@@ -211,22 +210,22 @@ void communication_application(void)
 
   case CMD_START_UPDATE:
   {
-    uint8_t responce = bootloader_start_update();
-    communication_add_responce(&frame, &responce,  sizeof(responce));
+  //  uint8_t responce = bootloader_start_update();
+ //   communication_add_responce(&frame, &responce,  sizeof(responce));
   }
   break;
 
   case CMD_SEND_DATA_BATCH:
   {
-    uint8_t responce = bootloader_update_batch(frame.payload, frame.payload_size);
+    // uint8_t responce = bootloader_update_batch(frame.payload, frame.payload_size);
 
-    communication_add_responce(&frame, &responce,  sizeof(responce));
+    // communication_add_responce(&frame, &responce,  sizeof(responce));
   }
 
   case CMD_END_UPDATE:
   {
-    uint8_t responce = bootloader_stop_update();
-    communication_add_responce(&frame, &responce,  sizeof(responce));
+  //  uint8_t responce = bootloader_stop_update();
+  //  communication_add_responce(&frame, &responce,  sizeof(responce));
   }
   break;
 
