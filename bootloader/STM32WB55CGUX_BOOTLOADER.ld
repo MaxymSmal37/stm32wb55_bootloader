@@ -42,75 +42,61 @@ _Min_Heap_Size = 0x200;  /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
 /* Specify the memory areas */
+ENTRY(Reset_Handler)
+
+_estack = ORIGIN(RAM) + LENGTH(RAM);
+_Min_Heap_Size = 0x200;
+_Min_Stack_Size = 0x400;
+
 MEMORY
 {
-FLASH (rx)                 : ORIGIN = 0x08008000, LENGTH = 480K
-RAM (xrw)                 : ORIGIN = 0x20000008, LENGTH = 0x2FFF8
-RAM_SHARED (xrw)           : ORIGIN = 0x20030000, LENGTH = 10K
+FLASH (rx)       : ORIGIN = 0x08000000, LENGTH = 32K
+RAM (xrw)        : ORIGIN = 0x20000008, LENGTH = 0x2FFF8
+RAM_SHARED (xrw) : ORIGIN = 0x20030000, LENGTH = 10K
 }
 
-/* Define output sections */
 SECTIONS
 {
-  /* The startup code goes first into FLASH */
-  .isr_vector :
-  {
-    . = ALIGN(4);
-    KEEP(*(.isr_vector)) /* Startup code */
-    . = ALIGN(4);
-  } >FLASH
-
-  /* The program code and other data goes into FLASH */
-  .text :
-  {
-    . = ALIGN(4);
-    *(.text)           /* .text sections (code) */
-    *(.text*)          /* .text* sections (code) */
-    *(.glue_7)         /* glue arm to thumb code */
-    *(.glue_7t)        /* glue thumb to arm code */
-    *(.eh_frame)
-
+  .isr_vector : { KEEP(*(.isr_vector)) } >FLASH
+  
+  .text       : 
+  { 
+    *(.text*) 
     KEEP (*(.init))
     KEEP (*(.fini))
-
-    . = ALIGN(4);
-    _etext = .;        /* define a global symbols at end of code */
   } >FLASH
+  
+  .rodata     : { *(.rodata*) } >FLASH
 
-  /* Constant data goes into FLASH */
-  .rodata :
-  {
-    . = ALIGN(4);
-    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
-    . = ALIGN(4);
-  } >FLASH
-
-  .ARM.extab (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  /* Додано відсутні секції ініціалізації, які очікує startup-файл */
+  .ARM.extab (READONLY) :
   {
     *(.ARM.extab* .gnu.linkonce.armextab.*)
   } >FLASH
-  .ARM (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  
+  .ARM (READONLY) :
   {
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
   } >FLASH
 
-  .preinit_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  .preinit_array (READONLY) :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
   } >FLASH
-  .init_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  
+  .init_array (READONLY) :
   {
     PROVIDE_HIDDEN (__init_array_start = .);
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
   } >FLASH
-  .fini_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  
+  .fini_array (READONLY) :
   {
     PROVIDE_HIDDEN (__fini_array_start = .);
     KEEP (*(SORT(.fini_array.*)))
@@ -118,37 +104,30 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
-  /* used by the startup to initialize data */
-  _sidata = LOADADDR(.data);
-
-  /* Initialized data sections goes into RAM, load LMA copy after code */
-  .data :
+  /* Секція ініціалізованих даних (Data) */
+  .data : 
   {
     . = ALIGN(4);
-    _sdata = .;        /* create a global symbol at data start */
-    *(.data)           /* .data sections */
-    *(.data*)          /* .data* sections */
-    *(.RamFunc)        /* .RamFunc sections */
-    *(.RamFunc*)       /* .RamFunc* sections */
-
+    _sdata = .;        /* Початок секції data в RAM */
+    *(.data)           
+    *(.data*)          
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
+    _edata = .;        /* Кінець секції data в RAM */
   } >RAM AT> FLASH
 
-  /* Uninitialized data section */
-  . = ALIGN(4);
+  /* Звідки копіювати ініціалізовані дані у Flash */
+  _sidata = LOADADDR(.data);
+
+  /* Секція неініціалізованих даних (BSS) */
   .bss :
   {
-    /* This is used by the startup in order to initialize the .bss section */
-    _sbss = .;         /* define a global symbol at bss start */
-    __bss_start__ = _sbss;
+    . = ALIGN(4);
+    _sbss = .;         /* Початок BSS у RAM */
     *(.bss)
     *(.bss*)
     *(COMMON)
-
     . = ALIGN(4);
-    _ebss = .;         /* define a global symbol at bss end */
-    __bss_end__ = _ebss;
+    _ebss = .;         /* Кінець BSS у RAM */
   } >RAM
 
   /* User_heap_stack section, used to check that there is enough RAM left */

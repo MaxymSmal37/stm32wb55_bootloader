@@ -7,4 +7,3 @@ target_include_directories(communication PUBLIC
 )
 
 target_link_libraries(communication PRIVATE core)
-target_link_libraries(communication PRIVATE bootloader)

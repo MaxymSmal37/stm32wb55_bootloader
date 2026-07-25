@@ -1,4 +1,4 @@
-set(TARGET STM32wb55_Bootloader)
+set(TARGET STM32wb55_App)
 
 # Absolute path to the FLASH linker script kept in the repo root.
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32WB55CGUX_FLASH.ld)
@@ -13,7 +13,6 @@ target_include_directories(${TARGET} PRIVATE
 )
 
 target_link_libraries(${TARGET} PRIVATE 
-    bootloader
     communication
     core
 )

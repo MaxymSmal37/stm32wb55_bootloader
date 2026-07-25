@@ -9,7 +9,6 @@
 #include "stm32wbxx.h"
 #include "stdint.h"
 #include "communication_protocol.h"
-#include "bootloader.h"
 
 #define LED_PORT GPIOE
 #define LED_PIN 4U
@@ -28,12 +27,10 @@ int main(void)
 {
   system_init();
   communication_init();
-  bootloader_init();
   while (1)
   {
-
-    communication_application();
-    bootloader_app();
+    LED_PORT->ODR ^= (1U << LED_PIN);
+    delay(1000000U);
   }
 }
 
