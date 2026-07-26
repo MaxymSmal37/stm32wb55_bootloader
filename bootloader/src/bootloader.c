@@ -1,27 +1,41 @@
 #include "bootloader.h"
-#include <string.h>
+#include "bootloader_config.h"
 #include "stm32wbxx.h"
-
-#define FLASH_PAGE_SIZE 2048U
-#define FLASH_WRITE_CHUNK 8U
-#define APP_FLASH_START 0x08008000UL
-#define APP_FLASH_SIZE (480U * 1024U)
+#include <string.h>
 
 
 bootloader_t bootloader;
 
-static void flash_erase(void)
+
+static flash_status_t flash_wait_for_last_operation(void)
 {
-  // Implement the logic to erase the flash memory
-  // This function should handle erasing the necessary sectors/pages
-  // Ensure proper error handling and state management
+  while (FLASH->SR & FLASH_SR_BSY)
+  {
+    /* bounded by page-erase/program time in practice */
+  }
+
+  uint32_t errors = FLASH->SR & (FLASH_SR_PROGERR | FLASH_SR_WRPERR |
+                                  FLASH_SR_PGAERR  | FLASH_SR_SIZERR |
+                                  FLASH_SR_PGSERR);
+  if (errors)
+  {
+    FLASH->SR = errors; /* W1C: clear the error flags */
+    return FLASH_ERROR;
+  }
+  return FLASH_OK;
 }
 
-static void flash_wait_for_last_operation(void)
+static void flash_erase(uint32_t page_addr)
 {
-  // Implement the logic to wait for the last flash operation to complete
-  // This function should check the status of the flash memory and wait until it is ready for the next operation
-  // Ensure proper error handling and state management
+  // bootloader.state = BOOTLOADER_IDLE;
+
+  // if (flash_wait_for_last_operation() != FLASH_OK)
+  // {
+  //   /* wait for flash to be ready */
+  // }
+
+  // uint32_t page_index = (page_addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+
 }
 
 static void flash_write(uint32_t address, uint8_t *data, uint32_t size)
@@ -75,24 +89,24 @@ void bootloader_init(void)
   bootloader.state = BOOTLOADER_IDLE;
 }
 
-uint8_t bootloader_start_update(void)
+flash_status_t bootloader_start_update(void)
 {
   bootloader.state = BOOTLOADER_START_UPDATE;
-  return 0;
+  return FLASH_OK;
 }
 
-uint8_t bootloader_stop_update(void)
+flash_status_t bootloader_stop_update(void)
 {
   bootloader.state = BOOTLOADER_END_UPDATE;
-  return 0;
+  return FLASH_OK;
 }
 
-uint8_t bootloader_update_batch(uint8_t *data, uint8_t size)
+flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size)
 {
   // Implement the logic to update the firmware with the provided data batch
   // This function should handle writing the data to flash memory
   // Ensure proper error handling and state management
-  return 1;
+  return FLASH_OK;
 };
 
 void bootloader_app(void)

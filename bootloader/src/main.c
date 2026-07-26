@@ -1,4 +1,6 @@
 #include "bootloader.h"
+#include "bootloader_config.h"
+#include "communication_protocol.h"
 #include "stm32wbxx.h"
 
 #define LED_PORT GPIOE
@@ -7,6 +9,7 @@
 static void system_init(void);
 static void wait_to_boot_mode(void);
 static void enter_to_boot_mode(void);
+static void handle_boot_timeout(void);
 
 void system_deinit(void);
 
@@ -26,14 +29,14 @@ int main(void)
 
   LED_PORT->ODR |= (1U << LED_PIN);
 
-  system_deinit();
-
-  bootloader_jump_to_application();
+  boot_mode = 1;
 
   bootloader_init();
+  communication_init();
 
   while (1)
   {
+    communication_application();
     // @todo implement the main loop of the bootloader here
   }
 }
@@ -160,5 +163,47 @@ static void wait_to_boot_mode(void)
     boot_mode = 1;
 
     bootloader_jump_to_application();
+  }
+}
+
+static void handle_boot_timeout(void)
+{
+  static uint32_t timeout_counter = 0;
+
+  if (timeout_counter > 3000U)
+  {
+    if (boot_mode == 0)
+    {
+      system_deinit();
+      bootloader_jump_to_application();
+      bootloader_jump_to_application();
+    }
+    else
+    {
+      timeout_counter = 0;
+    }
+  }
+  else
+  {
+    timeout_counter++;
+  }
+}
+
+void USART1_IRQHandler(void)
+{
+  if (USART1->ISR & USART_ISR_RXNE)
+  {
+    uint8_t received_byte = (uint8_t)(USART1->RDR & 0xFF);
+
+    communication_handle_request(received_byte);
+  }
+}
+
+void TIM2_IRQHandler(void)
+{
+  if (TIM2->SR & TIM_SR_UIF)
+  {
+    handle_boot_timeout();
+    TIM2->SR &= ~TIM_SR_UIF;
   }
 }

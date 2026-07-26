@@ -12,6 +12,14 @@ typedef enum
   BOOTLOADER_ERROR,
 } bootloader_state_t;
 
+typedef enum
+{
+  FLASH_OK = 0,
+  FLASH_BUSY,
+  FLASH_TIMEOUT,
+  FLASH_ERROR,
+} flash_status_t;
+
 typedef struct
 {
   bootloader_state_t state;
@@ -19,7 +27,7 @@ typedef struct
 
 void bootloader_init(void);
 void bootloader_app(void);
-uint8_t bootloader_start_update(void);
-uint8_t bootloader_update_batch(uint8_t *data, uint8_t size);
-uint8_t bootloader_stop_update(void);
+flash_status_t bootloader_start_update(void);
+flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size);
+flash_status_t bootloader_stop_update(void);
 void bootloader_jump_to_application(void);
