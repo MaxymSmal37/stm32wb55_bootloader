@@ -1,27 +1,81 @@
 #include "bootloader.h"
-#include <string.h>
+#include "bootloader_config.h"
 #include "stm32wbxx.h"
-
-#define FLASH_PAGE_SIZE 2048U
-#define FLASH_WRITE_CHUNK 8U
-#define APP_FLASH_START 0x08008000UL
-#define APP_FLASH_SIZE (480U * 1024U)
+#include <string.h>
 
 
 bootloader_t bootloader;
 
-static void flash_erase(void)
+
+static flash_status_t flash_wait_for_last_operation(void)
 {
-  // Implement the logic to erase the flash memory
-  // This function should handle erasing the necessary sectors/pages
-  // Ensure proper error handling and state management
+  while (FLASH->SR & FLASH_SR_BSY)
+  {
+    /* bounded by page-erase/program time in practice */
+  }
+
+  uint32_t errors = FLASH->SR & (FLASH_SR_PROGERR | FLASH_SR_WRPERR |
+                                  FLASH_SR_PGAERR  | FLASH_SR_SIZERR |
+                                  FLASH_SR_PGSERR);
+  if (errors)
+  {
+    FLASH->SR = errors; /* W1C: clear the error flags */
+    return FLASH_ERROR;
+  }
+  return FLASH_OK;
 }
 
-static void flash_wait_for_last_operation(void)
+flash_status_t flash_lock(void)
 {
-  // Implement the logic to wait for the last flash operation to complete
-  // This function should check the status of the flash memory and wait until it is ready for the next operation
-  // Ensure proper error handling and state management
+  FLASH->CR |= FLASH_CR_LOCK;
+  return FLASH_OK;
+}
+
+flash_status_t flash_unlock(void)
+{
+  if (FLASH->CR & FLASH_CR_LOCK)
+  {
+    FLASH->KEYR = FLASH_KEY1;
+    FLASH->KEYR = FLASH_KEY2;
+  }
+  return FLASH_OK;
+}
+
+static flash_status_t flash_erase(void)
+{
+flash_status_t status = FLASH_ERROR;
+
+ DEBUG_LED_DISABLE;
+
+ for (uint32_t addr = APP_FLASH_START;
+       addr < (APP_FLASH_START + APP_FLASH_SIZE);
+       addr += FLASH_PAGE_SIZE)
+  {
+    if (flash_wait_for_last_operation() != FLASH_OK)
+    {
+      bootloader.state = BOOTLOADER_ERROR;
+      return FLASH_ERROR;
+    }
+
+    flash_unlock();
+
+   uint32_t page_number = (addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+
+    FLASH->CR &= ~FLASH_CR_PNB;
+    FLASH->CR |= (page_number << FLASH_CR_PNB_Pos) & FLASH_CR_PNB;
+    FLASH->CR |= FLASH_CR_PER;
+    FLASH->CR |= FLASH_CR_STRT;
+
+
+    status = flash_wait_for_last_operation();
+
+    flash_lock();
+
+  }
+
+    DEBUG_LED_ENABLE;
+    return status;
+
 }
 
 static void flash_write(uint32_t address, uint8_t *data, uint32_t size)
@@ -73,45 +127,57 @@ void bootloader_init(void)
 {
   memset((void *)&bootloader, 0, sizeof(bootloader_t));
   bootloader.state = BOOTLOADER_IDLE;
+  bootloader.mode = BOOT_MODE_APPLICATION;
 }
 
-uint8_t bootloader_start_update(void)
+flash_status_t bootloader_start_update(void)
 {
   bootloader.state = BOOTLOADER_START_UPDATE;
-  return 0;
+  bootloader.mode = BOOT_MODE_BOOTLOADER;
+
+  return FLASH_OK;
 }
 
-uint8_t bootloader_stop_update(void)
+flash_status_t bootloader_erase_flash(void)
+{
+  bootloader.state = BOOTLOADER_ERASE_FLASH;
+  flash_status_t status = flash_erase();
+  return status;
+}
+
+flash_status_t bootloader_stop_update(void)
 {
   bootloader.state = BOOTLOADER_END_UPDATE;
-  return 0;
+  return FLASH_OK;
 }
 
-uint8_t bootloader_update_batch(uint8_t *data, uint8_t size)
+flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size)
 {
   // Implement the logic to update the firmware with the provided data batch
   // This function should handle writing the data to flash memory
   // Ensure proper error handling and state management
-  return 1;
+  return FLASH_OK;
 };
+
+bootloader_mode_t bootloader_get_mode(void)
+{
+  return bootloader.mode;
+}
 
 void bootloader_app(void)
 {
   switch (bootloader.state)
   {
   case BOOTLOADER_IDLE:
-
-    //bootloader.state = BOOTLOADER_START_UPDATE;
     break;
 
   case BOOTLOADER_START_UPDATE:
 
-    bootloader.state = BOOTLOADER_ERASE_FLASH;
+   // bootloader.state = BOOTLOADER_ERASE_FLASH;
     break;
 
   case BOOTLOADER_ERASE_FLASH:
-
-    bootloader.state = BOOTLOADER_UPDATE;
+   // bootloader.status = flash_erase();
     break;
 
   case BOOTLOADER_UPDATE:
@@ -124,13 +190,9 @@ void bootloader_app(void)
     bootloader.state = BOOTLOADER_IDLE;
     break;
 
-  case BOOTLOADER_ERROR:
-
-    bootloader.state = BOOTLOADER_IDLE;
-    break;
-
   default:
     bootloader.state = BOOTLOADER_ERROR;
     break;
   }
+   bootloader.state = BOOTLOADER_IDLE;
 }
