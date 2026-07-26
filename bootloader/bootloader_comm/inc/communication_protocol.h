@@ -48,6 +48,7 @@ typedef enum
     CMD_SYSTEM_INFO,
     CMD_GET_STATUS,
     CMD_START_UPDATE,
+     CMD_ERASE_FLASH,
     CMD_SEND_DATA_BATCH,
     CMD_END_UPDATE,
 } comm_cmd_t;

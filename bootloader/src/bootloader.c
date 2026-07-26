@@ -25,16 +25,56 @@ static flash_status_t flash_wait_for_last_operation(void)
   return FLASH_OK;
 }
 
-static void flash_erase(uint32_t page_addr)
+flash_status_t flash_lock(void)
 {
-  // bootloader.state = BOOTLOADER_IDLE;
+  FLASH->CR |= FLASH_CR_LOCK;
+  return FLASH_OK;
+}
 
-  // if (flash_wait_for_last_operation() != FLASH_OK)
-  // {
-  //   /* wait for flash to be ready */
-  // }
+flash_status_t flash_unlock(void)
+{
+  if (FLASH->CR & FLASH_CR_LOCK)
+  {
+    FLASH->KEYR = FLASH_KEY1;
+    FLASH->KEYR = FLASH_KEY2;
+  }
+  return FLASH_OK;
+}
 
-  // uint32_t page_index = (page_addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+static flash_status_t flash_erase(void)
+{
+flash_status_t status = FLASH_ERROR;
+
+ DEBUG_LED_DISABLE;
+
+ for (uint32_t addr = APP_FLASH_START;
+       addr < (APP_FLASH_START + APP_FLASH_SIZE);
+       addr += FLASH_PAGE_SIZE)
+  {
+    if (flash_wait_for_last_operation() != FLASH_OK)
+    {
+      bootloader.state = BOOTLOADER_ERROR;
+      return FLASH_ERROR;
+    }
+
+    flash_unlock();
+
+   uint32_t page_number = (addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+
+    FLASH->CR &= ~FLASH_CR_PNB;
+    FLASH->CR |= (page_number << FLASH_CR_PNB_Pos) & FLASH_CR_PNB;
+    FLASH->CR |= FLASH_CR_PER;
+    FLASH->CR |= FLASH_CR_STRT;
+
+
+    status = flash_wait_for_last_operation();
+
+    flash_lock();
+
+  }
+
+    DEBUG_LED_ENABLE;
+    return status;
 
 }
 
@@ -87,12 +127,22 @@ void bootloader_init(void)
 {
   memset((void *)&bootloader, 0, sizeof(bootloader_t));
   bootloader.state = BOOTLOADER_IDLE;
+  bootloader.mode = BOOT_MODE_APPLICATION;
 }
 
 flash_status_t bootloader_start_update(void)
 {
   bootloader.state = BOOTLOADER_START_UPDATE;
+  bootloader.mode = BOOT_MODE_BOOTLOADER;
+
   return FLASH_OK;
+}
+
+flash_status_t bootloader_erase_flash(void)
+{
+  bootloader.state = BOOTLOADER_ERASE_FLASH;
+  flash_status_t status = flash_erase();
+  return status;
 }
 
 flash_status_t bootloader_stop_update(void)
@@ -109,23 +159,25 @@ flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size)
   return FLASH_OK;
 };
 
+bootloader_mode_t bootloader_get_mode(void)
+{
+  return bootloader.mode;
+}
+
 void bootloader_app(void)
 {
   switch (bootloader.state)
   {
   case BOOTLOADER_IDLE:
-
-    //bootloader.state = BOOTLOADER_START_UPDATE;
     break;
 
   case BOOTLOADER_START_UPDATE:
 
-    bootloader.state = BOOTLOADER_ERASE_FLASH;
+   // bootloader.state = BOOTLOADER_ERASE_FLASH;
     break;
 
   case BOOTLOADER_ERASE_FLASH:
-
-    bootloader.state = BOOTLOADER_UPDATE;
+   // bootloader.status = flash_erase();
     break;
 
   case BOOTLOADER_UPDATE:
@@ -138,13 +190,9 @@ void bootloader_app(void)
     bootloader.state = BOOTLOADER_IDLE;
     break;
 
-  case BOOTLOADER_ERROR:
-
-    bootloader.state = BOOTLOADER_IDLE;
-    break;
-
   default:
     bootloader.state = BOOTLOADER_ERROR;
     break;
   }
+   bootloader.state = BOOTLOADER_IDLE;
 }

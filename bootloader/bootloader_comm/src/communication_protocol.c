@@ -4,7 +4,6 @@
 #include "communication_protocol.h"
 #include "bootloader.h"
 
-#define DEBUG_LED_TOGGLE (GPIOE->ODR ^= (1U << 4U))
 
 static volatile message_frame_t message_frame;
 static volatile communication_t communication;
@@ -214,6 +213,13 @@ void communication_application(void)
   case CMD_START_UPDATE:
   {
     uint8_t responce = bootloader_start_update();
+    communication_add_responce(&frame, &responce,  sizeof(responce));
+  }
+  break;
+
+  case CMD_ERASE_FLASH:
+  {
+    uint8_t responce = bootloader_erase_flash();
     communication_add_responce(&frame, &responce,  sizeof(responce));
   }
   break;

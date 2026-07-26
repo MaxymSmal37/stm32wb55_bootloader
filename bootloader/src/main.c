@@ -172,10 +172,9 @@ static void handle_boot_timeout(void)
 
   if (timeout_counter > 3000U)
   {
-    if (boot_mode == 0)
+    if (bootloader_get_mode() == BOOT_MODE_APPLICATION)
     {
       system_deinit();
-      bootloader_jump_to_application();
       bootloader_jump_to_application();
     }
     else

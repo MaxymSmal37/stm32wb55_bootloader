@@ -3,7 +3,8 @@ import time
 
 # Protocol constants
 FRAME_SOF = 0xE7
-FRAME_EOF = 0x37
+FRAME_EOF = 0x7E
+
 
 # Commands
 CMD_ECHO = 0
@@ -74,6 +75,16 @@ def main():
             # 2. Test CMD_SYSTEM_INFO command
             print("\n--- Testing CMD_SYSTEM_INFO ---")
             send_and_receive(ser, CMD_SYSTEM_INFO)
+
+            # 3. Test CMD_START_UPDATE command
+            print("\n--- Testing CMD_START_UPDATE ---")
+            send_and_receive(ser, 3)  # CMD_START_UPDATE has ID 3
+
+            print("\n--- Testing CMD_FLASH_ERASE ---")
+            send_and_receive(ser, 4)  # CMD_FLASH_ERASE has ID 4
+
+
+
             
     except serial.SerialException as e:
         print(f"Port connection error: {e}")
