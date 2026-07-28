@@ -11,6 +11,7 @@
  
 #define FLASH_WRITE_CHUNK 8U /
 
+#define BOOTLOADER_COMM_USE_USB ///< @todo need to move to CMAKE
 /* Select the bootloader transport from CMake via BOOTLOADER_COMM_TRANSPORT. */
 #if defined(BOOTLOADER_COMM_USE_USB)
 #define BOOTLOADER_COMM_TRANSPORT_USB 1U

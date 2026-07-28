@@ -3,6 +3,8 @@
 
 #include "communication_protocol.h"
 #include "bootloader.h"
+#include "usb_cdc_bootloader.h"
+#include "bootloader_config.h"
 
 
 static volatile message_frame_t message_frame;
@@ -44,18 +46,19 @@ static uint8_t calculate_crc(const volatile message_frame_t *frame)
 static void transport_send_char(char c)
 {
 #if defined(BOOTLOADER_COMM_USE_USB)
-  (void)c;
-#else
-  while (!(USART1->ISR & USART_ISR_TXE));
-  USART1->TDR = c;
-#endif
+  static uint8_t single_byte[1] = {0};
+  single_byte[0] = (uint8_t)c;
+  usb_cdc_bootloader_send(single_byte, 1U);
+ #else
+   while (!(USART1->ISR & USART_ISR_TXE));
+   USART1->TDR = c;
+ #endif
 }
 
 static void transport_send_bytes(uint8_t *str, uint8_t size)
 {
 #if defined(BOOTLOADER_COMM_USE_USB)
-  (void)str;
-  (void)size;
+  usb_cdc_bootloader_send(str, size);
 #else
   while (size--)
   {
