@@ -14,6 +14,17 @@ target_include_directories(${TARGET} PRIVATE
     inc
 )
 
+# set_property(CACHE BOOTLOADER_COMM_TRANSPORT PROPERTY STRINGS UART USB)
+
+# if(BOOTLOADER_COMM_TRANSPORT STREQUAL "USB")
+#     add_compile_definitions(BOOTLOADER_COMM_USE_USB=1)
+# elseif(BOOTLOADER_COMM_TRANSPORT STREQUAL "UART")
+#     add_compile_definitions(BOOTLOADER_COMM_USE_UART=1)
+# else()
+#     message(FATAL_ERROR "Unsupported BOOTLOADER_COMM_TRANSPORT '${BOOTLOADER_COMM_TRANSPORT}'. Use UART or USB.")
+# endif()
+
+
 target_link_libraries(${TARGET} PRIVATE 
     bootloader_core
 )

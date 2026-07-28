@@ -41,26 +41,27 @@ static uint8_t calculate_crc(const volatile message_frame_t *frame)
 }
 
 
-static void UART1_SendChar(char c)
+static void transport_send_char(char c)
 {
+#if defined(BOOTLOADER_COMM_USE_USB)
+  (void)c;
+#else
   while (!(USART1->ISR & USART_ISR_TXE));
   USART1->TDR = c;
+#endif
 }
 
-static void UART1_SendString(const char *str)
+static void transport_send_bytes(uint8_t *str, uint8_t size)
 {
-  while (*str)
-  {
-    UART1_SendChar(*str++);
-  }
-}
-
-static void UART1_Resonce(uint8_t *str, uint8_t size)
-{
+#if defined(BOOTLOADER_COMM_USE_USB)
+  (void)str;
+  (void)size;
+#else
   while (size--)
   {
-    UART1_SendChar(*str++);
+    transport_send_char((char)*str++);
   }
+#endif
 }
 
 void communication_init(void)
@@ -75,10 +76,7 @@ void communication_init(void)
 
 void communication_send_responce(uint8_t *str, uint8_t size)
 {
-  while (size--)
-  {
-    UART1_SendChar(*str++);
-  }
+  transport_send_bytes(str, size);
 }
 
 void communication_add_responce(message_frame_t *frame, uint8_t *responce, uint8_t size)
@@ -96,7 +94,7 @@ void communication_add_responce(message_frame_t *frame, uint8_t *responce, uint8
 
   communication_tx_buff[4 + size] = FRAME_EOF;
 
-  UART1_Resonce(communication_tx_buff, size + 5);
+  transport_send_bytes(communication_tx_buff, size + 5);
 
   memset(frame, 0, sizeof(message_frame_t));
   memset((void *)&communication, 0, sizeof(communication_t));

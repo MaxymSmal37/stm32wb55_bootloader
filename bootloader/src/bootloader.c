@@ -3,9 +3,7 @@
 #include "stm32wbxx.h"
 #include <string.h>
 
-
 bootloader_t bootloader;
-
 
 static flash_status_t flash_wait_for_last_operation(void)
 {
@@ -15,8 +13,8 @@ static flash_status_t flash_wait_for_last_operation(void)
   }
 
   uint32_t errors = FLASH->SR & (FLASH_SR_PROGERR | FLASH_SR_WRPERR |
-                                  FLASH_SR_PGAERR  | FLASH_SR_SIZERR |
-                                  FLASH_SR_PGSERR);
+                                 FLASH_SR_PGAERR | FLASH_SR_SIZERR |
+                                 FLASH_SR_PGSERR);
   if (errors)
   {
     FLASH->SR = errors; /* W1C: clear the error flags */
@@ -43,11 +41,11 @@ flash_status_t flash_unlock(void)
 
 static flash_status_t flash_erase(void)
 {
-flash_status_t status = FLASH_ERROR;
+  flash_status_t status = FLASH_ERROR;
 
- DEBUG_LED_DISABLE;
+  DEBUG_LED_DISABLE;
 
- for (uint32_t addr = APP_FLASH_START;
+  for (uint32_t addr = APP_FLASH_START;
        addr < (APP_FLASH_START + APP_FLASH_SIZE);
        addr += FLASH_PAGE_SIZE)
   {
@@ -59,23 +57,20 @@ flash_status_t status = FLASH_ERROR;
 
     flash_unlock();
 
-   uint32_t page_number = (addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+    uint32_t page_number = (addr - FLASH_BASE) / FLASH_PAGE_SIZE;
 
     FLASH->CR &= ~FLASH_CR_PNB;
     FLASH->CR |= (page_number << FLASH_CR_PNB_Pos) & FLASH_CR_PNB;
     FLASH->CR |= FLASH_CR_PER;
     FLASH->CR |= FLASH_CR_STRT;
 
-
     status = flash_wait_for_last_operation();
 
     flash_lock();
-
   }
 
-    DEBUG_LED_ENABLE;
-    return status;
-
+  DEBUG_LED_ENABLE;
+  return status;
 }
 
 static void flash_write(uint32_t address, uint8_t *data, uint32_t size)
@@ -89,7 +84,7 @@ void bootloader_jump_to_application(void)
 {
   typedef void (*pFunction)(void);
 
-  uint32_t app_stack_ptr  = *(volatile uint32_t *)(APP_FLASH_START + 0U);
+  uint32_t app_stack_ptr = *(volatile uint32_t *)(APP_FLASH_START + 0U);
   uint32_t app_reset_addr = *(volatile uint32_t *)(APP_FLASH_START + 4U);
 
   __disable_irq();
@@ -102,10 +97,10 @@ void bootloader_jump_to_application(void)
 
   SysTick->CTRL = 0U;
   SysTick->LOAD = 0U;
-  SysTick->VAL  = 0U;
+  SysTick->VAL = 0U;
 
-  SCB->VTOR = APP_FLASH_START;   /* relocate vector table to the app's */
-  __set_MSP(app_stack_ptr);      /* set the app's own initial stack pointer */
+  SCB->VTOR = APP_FLASH_START; /* relocate vector table to the app's */
+  __set_MSP(app_stack_ptr);    /* set the app's own initial stack pointer */
 
   __DSB();
   __ISB();
@@ -120,8 +115,6 @@ void bootloader_jump_to_application(void)
     /* only reached if the jump itself somehow returned */
   }
 }
-
-
 
 void bootloader_init(void)
 {
@@ -173,11 +166,11 @@ void bootloader_app(void)
 
   case BOOTLOADER_START_UPDATE:
 
-   // bootloader.state = BOOTLOADER_ERASE_FLASH;
+    // bootloader.state = BOOTLOADER_ERASE_FLASH;
     break;
 
   case BOOTLOADER_ERASE_FLASH:
-   // bootloader.status = flash_erase();
+    // bootloader.status = flash_erase();
     break;
 
   case BOOTLOADER_UPDATE:
@@ -194,5 +187,5 @@ void bootloader_app(void)
     bootloader.state = BOOTLOADER_ERROR;
     break;
   }
-   bootloader.state = BOOTLOADER_IDLE;
+  bootloader.state = BOOTLOADER_IDLE;
 }
