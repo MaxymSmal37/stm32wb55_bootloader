@@ -11,6 +11,13 @@
  
 #define FLASH_WRITE_CHUNK 8U /
 
+#define BOOTLOADER_COMM_USE_USB ///< @todo need to move to CMAKE
+/* Select the bootloader transport from CMake via BOOTLOADER_COMM_TRANSPORT. */
+#if defined(BOOTLOADER_COMM_USE_USB)
+#define BOOTLOADER_COMM_TRANSPORT_USB 1U
+#elif defined(BOOTLOADER_COMM_USE_UART)
+#define BOOTLOADER_COMM_TRANSPORT_UART 1U
+#endif
 
 // Debug LED macros for toggling, enabling, and disabling the LED on GPIOE pin 4
 #define DEBUG_LED_TOGGLE (GPIOE->ODR ^= (1U << 4U))

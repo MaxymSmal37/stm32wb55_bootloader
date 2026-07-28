@@ -8,7 +8,6 @@ target_include_directories(core PUBLIC
 )
 
 
-
 target_compile_definitions(core PUBLIC 
     STM32WB55xx 
 )

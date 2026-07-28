@@ -2,6 +2,7 @@
 #include "bootloader_config.h"
 #include "communication_protocol.h"
 #include "stm32wbxx.h"
+#include "usb_cdc_bootloader.h"
 
 #define LED_PORT GPIOE
 #define LED_PIN 4U
@@ -33,9 +34,11 @@ int main(void)
 
   bootloader_init();
   communication_init();
+  usb_cdc_bootloader_init();
 
   while (1)
   {
+    usb_cdc_bootloader_task();
     communication_application();
     // @todo implement the main loop of the bootloader here
   }
@@ -65,6 +68,12 @@ void system_init(void)
                  | (16U << RCC_PLLCFGR_PLLN_Pos)                               /* N=16 */
                  | (1U << RCC_PLLCFGR_PLLR_Pos)                                /* R=2 */
                  | RCC_PLLCFGR_PLLREN;
+
+  (void)RCC->APB1ENR1;     // dummy read для синхронізації
+  PWR->CR2 |= PWR_CR2_USV; // USB supply valid
+
+  RCC->APB1ENR1 |= RCC_APB1ENR1_CRSEN;
+  CRS->CR |= CRS_CR_AUTOTRIMEN | CRS_CR_CEN;
 
   RCC->CR |= RCC_CR_PLLON;
   while (!(RCC->CR & RCC_CR_PLLRDY))
@@ -202,7 +211,7 @@ void TIM2_IRQHandler(void)
 {
   if (TIM2->SR & TIM_SR_UIF)
   {
-    handle_boot_timeout();
+    // handle_boot_timeout();
     TIM2->SR &= ~TIM_SR_UIF;
   }
 }
