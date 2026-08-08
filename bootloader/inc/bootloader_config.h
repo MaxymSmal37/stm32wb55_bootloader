@@ -9,7 +9,7 @@
 #define FLASH_KEY1       0x45670123UL
 #define FLASH_KEY2       0xCDEF89ABUL
  
-#define FLASH_WRITE_CHUNK 8U /
+#define FLASH_WRITE_CHUNK 8U 
 
 #define BOOTLOADER_COMM_USE_USB ///< @todo need to move to CMAKE
 /* Select the bootloader transport from CMake via BOOTLOADER_COMM_TRANSPORT. */
