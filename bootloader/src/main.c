@@ -30,7 +30,7 @@ int main(void)
 
   LED_PORT->ODR |= (1U << LED_PIN);
 
-  boot_mode = 1;
+  boot_mode = 0;
 
   bootloader_init();
   communication_init();
@@ -139,6 +139,8 @@ void system_deinit(void)
   USART1->CR1 = 0U; /* TE/RE/RXNEIE/UE all off */
   RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN;
 
+  GPIOE->ODR &= ~(1U << 4U);
+
   TIM2->CR1 = 0U;  /* stop counting */
   TIM2->DIER = 0U; /* disable update interrupt */
   RCC->APB1ENR1 &= ~RCC_APB1ENR1_TIM2EN;
@@ -183,7 +185,6 @@ static void handle_boot_timeout(void)
   {
     if (bootloader_get_mode() == BOOT_MODE_APPLICATION)
     {
-      system_deinit();
       bootloader_jump_to_application();
     }
     else
@@ -211,7 +212,7 @@ void TIM2_IRQHandler(void)
 {
   if (TIM2->SR & TIM_SR_UIF)
   {
-    // handle_boot_timeout();
+    handle_boot_timeout();
     TIM2->SR &= ~TIM_SR_UIF;
   }
 }

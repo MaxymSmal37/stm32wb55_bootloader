@@ -41,6 +41,7 @@ typedef struct
 void bootloader_init(void);
 void bootloader_app(void);
 void bootloader_jump_to_application(void);
+void system_deinit(void);
 bootloader_mode_t bootloader_get_mode(void);
 flash_status_t bootloader_start_update(void);
 flash_status_t bootloader_erase_flash(void);

@@ -66,6 +66,8 @@ static flash_status_t flash_erase(void)
 
     status = flash_wait_for_last_operation();
 
+    FLASH->CR &= ~FLASH_CR_PER; 
+
     flash_lock();
   }
 
@@ -75,9 +77,57 @@ static flash_status_t flash_erase(void)
 
 static void flash_write(uint32_t address, uint8_t *data, uint32_t size)
 {
-  // Implement the logic to write data to flash memory
-  // This function should handle writing the provided data to the specified address in flash memory
-  // Ensure proper error handling and state management
+  if (flash_wait_for_last_operation() != FLASH_OK)
+  {
+    bootloader.state = BOOTLOADER_ERROR;
+    return;
+  }
+
+  flash_unlock();
+
+  FLASH->CR |= FLASH_CR_PG;
+
+  for (uint32_t i = 0; i < size; i += FLASH_WRITE_CHUNK)
+  {
+    uint64_t data_chunk = 0xFFFFFFFFFFFFFFFF; 
+    
+    uint32_t copy_size = (size - i) < FLASH_WRITE_CHUNK ? (size - i) : FLASH_WRITE_CHUNK;
+    memcpy(&data_chunk, &data[i], copy_size);
+
+    *(volatile uint64_t *)(address + i) = data_chunk;
+
+    if (flash_wait_for_last_operation() != FLASH_OK)
+    {
+      bootloader.state = BOOTLOADER_ERROR;
+      FLASH->CR &= ~FLASH_CR_PG; 
+      flash_lock();
+      return;
+    }
+  }
+
+  FLASH->CR &= ~FLASH_CR_PG;
+
+  flash_lock();
+}
+
+flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size)
+{
+  static uint32_t current_address = APP_FLASH_START;
+
+  if (current_address + size > APP_FLASH_END)
+  {
+    bootloader.state = BOOTLOADER_ERROR;
+    return FLASH_ERROR;
+  }
+
+  flash_write(current_address, data, size);
+  current_address += size;
+
+  if (current_address >= APP_FLASH_END)
+  {
+    bootloader.state = BOOTLOADER_END_UPDATE;
+  }
+  return FLASH_OK;
 }
 
 void bootloader_jump_to_application(void)
@@ -86,6 +136,8 @@ void bootloader_jump_to_application(void)
 
   uint32_t app_stack_ptr = *(volatile uint32_t *)(APP_FLASH_START + 0U);
   uint32_t app_reset_addr = *(volatile uint32_t *)(APP_FLASH_START + 4U);
+
+  system_deinit();
 
   __disable_irq();
 
@@ -112,7 +164,6 @@ void bootloader_jump_to_application(void)
 
   while (1)
   {
-    /* only reached if the jump itself somehow returned */
   }
 }
 
@@ -135,6 +186,16 @@ flash_status_t bootloader_erase_flash(void)
 {
   bootloader.state = BOOTLOADER_ERASE_FLASH;
   flash_status_t status = flash_erase();
+
+  if (status == FLASH_OK)
+  {
+    bootloader.state = BOOTLOADER_UPDATE;
+  }
+  else
+  {
+    bootloader.state = BOOTLOADER_ERROR;
+  }
+
   return status;
 }
 
@@ -143,14 +204,6 @@ flash_status_t bootloader_stop_update(void)
   bootloader.state = BOOTLOADER_END_UPDATE;
   return FLASH_OK;
 }
-
-flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size)
-{
-  // Implement the logic to update the firmware with the provided data batch
-  // This function should handle writing the data to flash memory
-  // Ensure proper error handling and state management
-  return FLASH_OK;
-};
 
 bootloader_mode_t bootloader_get_mode(void)
 {

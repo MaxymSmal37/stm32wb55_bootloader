@@ -6,7 +6,6 @@
 #include "usb_cdc_bootloader.h"
 #include "bootloader_config.h"
 
-
 static volatile message_frame_t message_frame;
 static volatile communication_t communication;
 
@@ -32,13 +31,29 @@ static uint8_t crc8_update(uint8_t crc, uint8_t byte)
   return crc;
 }
 
+uint8_t communication_calc_crc(uint8_t id, uint8_t size, const uint8_t *payload)
+{
+  uint8_t crc = crc8_update(0U, id);
+  crc = crc8_update(crc, size);
+  for (uint8_t i = 0U; i < size; i++)
+  {
+    crc = crc8_update(crc, payload[i]);
+  }
+  return crc;
+}
+
 static uint8_t calculate_crc(const volatile message_frame_t *frame)
 {
-  uint8_t crc = crc8_update(0U, frame->id);
-  crc = crc8_update(crc, frame->payload_size);
-  for (uint8_t i = 0U; i < frame->payload_size; i++)
+  return communication_calc_crc(frame->id, frame->payload_size, (const uint8_t *)frame->payload);
+}
+
+static uint8_t calculate_response_crc(uint8_t id, const uint8_t *responce, uint8_t size)
+{
+  uint8_t crc = crc8_update(0U, id);
+  crc = crc8_update(crc, size);
+  for (uint8_t i = 0U; i < size; i++)
   {
-    crc = crc8_update(crc, frame->payload[i]);
+    crc = crc8_update(crc, responce[i]);
   }
   return crc;
 }
@@ -93,10 +108,8 @@ void communication_add_responce(message_frame_t *frame, uint8_t *responce, uint8
     memcpy(&communication_tx_buff[3], responce, size);
   }
 
-  communication_tx_buff[3 + size] = calculate_crc(frame);
-
+  communication_tx_buff[3 + size] = calculate_response_crc(frame->id, responce, size);
   communication_tx_buff[4 + size] = FRAME_EOF;
-
 
   transport_send_bytes(communication_tx_buff, size + 5);
 
@@ -227,15 +240,17 @@ void communication_application(void)
 
   case CMD_SEND_DATA_BATCH:
   {
-    // uint8_t responce = bootloader_update_batch(frame.payload, frame.payload_size);
+    flash_status_t responce = bootloader_update_batch(frame.payload, frame.payload_size);
 
-    // communication_add_responce(&frame, &responce,  sizeof(responce));
+    communication_add_responce(&frame, &responce,  sizeof(responce));
   }
+  break;
 
   case CMD_END_UPDATE:
   {
-  //  uint8_t responce = bootloader_stop_update();
-  //  communication_add_responce(&frame, &responce,  sizeof(responce));
+    flash_status_t responce = bootloader_stop_update();
+    communication_add_responce(&frame, &responce,  sizeof(responce));
+    bootloader_jump_to_application();
   }
   break;
 
