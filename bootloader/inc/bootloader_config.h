@@ -1,3 +1,12 @@
+/*
+* @file  bootloader_config.h
+* @brief Bootloader configuration file.
+*
+* This file contains the configuration parameters for the bootloader module.
+*/
+#ifndef BOOTLOADER_CONFIG_H
+#define BOOTLOADER_CONFIG_H
+
 #define BOOTLOADER_START 0x08000000UL
 
 #define APP_FLASH_START  0x08008000UL
@@ -23,3 +32,5 @@
 #define DEBUG_LED_TOGGLE (GPIOE->ODR ^= (1U << 4U))
 #define DEBUG_LED_ENABLE (GPIOE->ODR |= (1U << 4U))
 #define DEBUG_LED_DISABLE (GPIOE->ODR &= ~(1U << 4U))
+
+#endif // BOOTLOADER_CONFIG_H

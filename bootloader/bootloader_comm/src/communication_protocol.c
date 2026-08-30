@@ -181,6 +181,11 @@ void communication_handle_request(unsigned char byte)
       communication.data_ready = COMM_DATA_IS_READY;
     }
 
+    if (bootloader_get_state() == BOOTLOADER_END_UPDATE)
+    {
+      bootloader_jump_to_application();
+    }
+
     communication.state = COMM_SOF;
     break;
 
@@ -219,7 +224,7 @@ void communication_application(void)
 
   case CMD_GET_STATUS:
   {
-    uint8_t responce[1] = {0xFF};
+    uint8_t responce[1] = {(uint8_t)bootloader_get_state()};
     communication_add_responce(&frame, responce,  sizeof(responce));
   }
   break;
@@ -233,8 +238,9 @@ void communication_application(void)
 
   case CMD_ERASE_FLASH:
   {
-    uint8_t responce = bootloader_erase_flash();
+    uint8_t responce = COMM_OK;
     communication_add_responce(&frame, &responce,  sizeof(responce));
+    bootloader_erase_flash();
   }
   break;
 
@@ -250,7 +256,6 @@ void communication_application(void)
   {
     flash_status_t responce = bootloader_stop_update();
     communication_add_responce(&frame, &responce,  sizeof(responce));
-    bootloader_jump_to_application();
   }
   break;
 

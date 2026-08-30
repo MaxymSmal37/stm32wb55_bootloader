@@ -210,35 +210,7 @@ bootloader_mode_t bootloader_get_mode(void)
   return bootloader.mode;
 }
 
-void bootloader_app(void)
+bootloader_state_t bootloader_get_state(void)
 {
-  switch (bootloader.state)
-  {
-  case BOOTLOADER_IDLE:
-    break;
-
-  case BOOTLOADER_START_UPDATE:
-
-    // bootloader.state = BOOTLOADER_ERASE_FLASH;
-    break;
-
-  case BOOTLOADER_ERASE_FLASH:
-    // bootloader.status = flash_erase();
-    break;
-
-  case BOOTLOADER_UPDATE:
-
-    bootloader.state = BOOTLOADER_END_UPDATE;
-    break;
-
-  case BOOTLOADER_END_UPDATE:
-
-    bootloader.state = BOOTLOADER_IDLE;
-    break;
-
-  default:
-    bootloader.state = BOOTLOADER_ERROR;
-    break;
-  }
-  bootloader.state = BOOTLOADER_IDLE;
+  return bootloader.state;
 }
