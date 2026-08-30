@@ -93,8 +93,23 @@
  * Overridable at runtime with -t <ms>; some commands (e.g. START_UPDATE,
  * ERASE_FLASH) may involve real flash operations that take longer than a
  * quick ECHO round-trip. */
-#define DEFAULT_RESPONSE_TIMEOUT_MS 10000
+#define DEFAULT_RESPONSE_TIMEOUT_MS 3000
+#define ERASE_TIMEOUT_MS 2000000/* 20 seconds max wait for device to be ready after erase */
+
+typedef enum
+{
+  BOOTLOADER_IDLE = 0,
+  BOOTLOADER_START_UPDATE,
+  BOOTLOADER_ERASE_FLASH,
+  BOOTLOADER_UPDATE,
+  BOOTLOADER_END_UPDATE,
+} boot_state_t;
+
 static int g_response_timeout_ms = DEFAULT_RESPONSE_TIMEOUT_MS;
+
+uint16_t erase_timeout = ERASE_TIMEOUT_MS; 
+
+boot_state_t status = BOOTLOADER_IDLE;
 
 /* ===================== CRC8 (identical to firmware) ====================== */
 
@@ -536,14 +551,11 @@ static int cmd_sysinfo(int fd)
 static int cmd_status(int fd)
 {
     rx_frame_t reply;
-    printf("-> GET_STATUS\n");
     if (!do_command(fd, CMD_GET_STATUS, NULL, 0, &reply))
     {
         fprintf(stderr, "error: timeout waiting for GET_STATUS reply\n");
         return 1;
     }
-    printf("<- id=0x%02X size=%u payload=", reply.id, reply.size);
-    hex_dump(reply.payload, reply.size);
     return 0;
 }
 
@@ -557,7 +569,6 @@ static int cmd_start_update(int fd)
         return 1;
     }
     printf("<- id=0x%02X size=%u payload=", reply.id, reply.size);
-    hex_dump(reply.payload, reply.size);
     return 0;
 }
 
@@ -571,7 +582,6 @@ static int cmd_erase_flash(int fd)
         return 1;
     }
     printf("<- id=0x%02X size=%u payload=", reply.id, reply.size);
-    hex_dump(reply.payload, reply.size);
     return 0;
 }
 
@@ -586,7 +596,6 @@ static int cmd_end_update(int fd)
         return 1;
     }
     printf("<- id=0x%02X size=%u payload=", reply.id, reply.size);
-    hex_dump(reply.payload, reply.size);
     return 0;
 }
 
@@ -764,6 +773,22 @@ static int cmd_flash(int fd, const char *path)
             unlink(converted_path);
         }
         return 1;
+    }
+
+    fprintf(stderr, "Waiting for device to be ready after erase...\n");
+    do
+    {
+        status = cmd_status(fd);
+        usleep(100);  // Sleep for 100000 microseconds (100 ms) to avoid busy-waiting
+        erase_timeout--;
+    }
+    while ((status != BOOTLOADER_UPDATE) && (erase_timeout > 0));
+
+
+    if (erase_timeout <= 0 || status != BOOTLOADER_UPDATE)
+    {
+        fprintf(stderr, "error: device did not become ready after erase within the expected time.\n");
+     //   return 1;
     }
 
     uint8_t chunk[FLASH_CHUNK_SIZE];

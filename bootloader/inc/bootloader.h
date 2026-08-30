@@ -1,4 +1,9 @@
-//
+/*
+* @file bootloader.h
+* @brief Bootloader header file.
+*
+* This file contains the declarations and definitions for the bootloader module.
+*/
 
 #include "stdint.h"
 
@@ -39,7 +44,6 @@ typedef struct
 } bootloader_t;
 
 void bootloader_init(void);
-void bootloader_app(void);
 void bootloader_jump_to_application(void);
 void system_deinit(void);
 bootloader_mode_t bootloader_get_mode(void);
@@ -47,3 +51,4 @@ flash_status_t bootloader_start_update(void);
 flash_status_t bootloader_erase_flash(void);
 flash_status_t bootloader_update_batch(uint8_t *data, uint8_t size);
 flash_status_t bootloader_stop_update(void);
+bootloader_state_t bootloader_get_state(void);

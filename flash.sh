@@ -22,7 +22,7 @@ TARGET="${1:-bootloader}"
 BOOTLOADER_ELF=build/bootloader/Bootloader.elf
 APP_ELF=build/app/STM32wb55_App.elf
 
-./build.sh
+./build.sh -l 
 
 case "$TARGET" in
   bootloader)

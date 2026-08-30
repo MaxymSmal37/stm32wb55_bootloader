@@ -64,6 +64,13 @@ typedef enum
   CMD_SEND_DATA_BATCH,
   CMD_END_UPDATE,
 } comm_cmd_t;
+
+typedef enum
+{
+    COMM_OK = 0U,
+    COMM_ERROR = 1U,
+} comm_status_t;
+
 #pragma endregion
 
 /*
